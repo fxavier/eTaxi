@@ -1,5 +1,9 @@
+import 'package:etaxi/blocs/blocs.dart';
+import 'package:etaxi/config/routes.dart';
 import 'package:etaxi/firebase_options.dart';
+import 'package:etaxi/repositories/repositories.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flow_builder/flow_builder.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -12,20 +16,30 @@ Future<void> main() {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
-      runApp(const App());
+      final authRepository = AuthRepository();
+      runApp(App(authRepository: authRepository));
     },
     blocObserver: AppBlocObserver(),
   );
 }
 
 class App extends StatelessWidget {
+  final AuthRepository _authRepository;
   const App({
     Key? key,
-  }) : super(key: key);
+    required AuthRepository authRepository,
+  })  : _authRepository = authRepository,
+        super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return const AppView();
+    return RepositoryProvider.value(
+      value: _authRepository,
+      child: BlocProvider(
+        create: (_) => AppBloc(authRepository: _authRepository),
+        child: const AppView(),
+      ),
+    );
   }
 }
 
@@ -36,6 +50,11 @@ class AppView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp();
+    return MaterialApp(
+      home: FlowBuilder(
+        state: context.select((AppBloc bloc) => bloc.state.status),
+        onGeneratePages: onGenerateAppViewPages,
+      ),
+    );
   }
 }
